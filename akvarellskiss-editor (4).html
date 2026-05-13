@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Studio · akvarellskiss.se</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600&family=DM+Sans:wght@300;400;500&display=swap');
+
+  :root {
+    --bg:       #F5F5F0;
+    --accent:   #D7CCC8;
+    --active:   #4E342E;
+    --active2:  #6D4C41;
+    --text:     #2E1B17;
+    --muted:    #9E8680;
+    --white:    #FDFCFB;
+    --shadow:   rgba(78,52,46,0.12);
+    --radius:   10px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--active);
+    color: var(--bg);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  header .brand {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.25rem;
+    font-weight: 300;
+    letter-spacing: .08em;
+    opacity: .9;
+  }
+  header .brand span { font-weight: 600; opacity: 1; }
+  header .subtitle {
+    font-size: .7rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    opacity: .6;
+  }
+
+  /* ── LAYOUT ── */
+  .app { display: flex; flex-direction: column; min-height: calc(100vh - 50px); }
+
+  /* ── DROP ZONE ── */
+  #dropZone {
+    margin: 18px 16px;
+    border: 2px dashed var(--accent);
+    border-radius: var(--radius);
+    background: var(--white);
+    padding: 40px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .2s, background .2s;
+    position: relative;
+  }
+  #dropZone.drag { border-color: var(--active); background: #F0EBE9; }
+  #dropZone input[type=file] { position:absolute;inset:0;opacity:0;cursor:pointer; }
+  #dropZone .drop-icon { font-size: 2.4rem; margin-bottom: 8px; }
+  #dropZone p { color: var(--muted); font-size: .85rem; line-height: 1.6; }
+  #dropZone strong { color: var(--active); }
+
+  /* ── BATCH LIST ── */
+  #batchBar {
+    display: none;
+    margin: 0 16px 6px;
+    padding: 8px 12px;
+    background: var(--white);
+    border-radius: var(--radius);
+    font-size: .78rem;
+    color: var(--muted);
+    border: 1px solid var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  #batchBar .bcount { color: var(--active); font-weight: 500; }
+  #batchBar button {
+    margin-left: auto;
+    background: var(--active);
+    color: var(--bg);
+    border: none;
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: .75rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+
+  /* ── CANVAS AREA ── */
+  #canvasWrap {
+    display: none;
+    margin: 0 16px;
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: #e8e2de;
+    position: relative;
+    box-shadow: 0 4px 24px var(--shadow);
+  }
+  #canvasWrap canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    max-height: 55vh;
+    object-fit: contain;
+    cursor: crosshair;
+  }
+  #baLabel {
+    position: absolute;
+    top: 10px; left: 10px;
+    background: rgba(78,52,46,.75);
+    color: #fff;
+    font-size: .65rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 20px;
+    pointer-events: none;
+    transition: opacity .15s;
+  }
+
+  #cropOverlay {
+    display: none;
+    position: absolute;
+    border: 2px solid var(--active);
+    box-shadow: 0 0 0 9999px rgba(0,0,0,.45);
+    cursor: move;
+    pointer-events: none;
+  }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    margin: 14px 16px 0;
+    gap: 2px;
+  }
+  .tabs button {
+    flex: 1;
+    padding: 8px 6px;
+    border: 1px solid var(--accent);
+    background: var(--white);
+    color: var(--muted);
+    font-family: inherit;
+    font-size: .72rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 6px 6px 0 0;
+    transition: background .15s, color .15s;
+  }
+  .tabs button.active {
+    background: var(--active);
+    color: var(--bg);
+    border-color: var(--active);
+  }
+
+  /* ── PANELS ── */
+  .panel {
+    display: none;
+    margin: 0 16px;
+    background: var(--white);
+    border: 1px solid var(--accent);
+    border-top: none;
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 16px;
+  }
+  .panel.active { display: block; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .row label {
+    width: 110px;
+    flex-shrink: 0;
+    font-size: .75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .07em;
+  }
+  .row input[type=range] {
+    flex: 1;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--accent);
+    outline: none;
+    cursor: pointer;
+  }
+  .row input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--active);
+    cursor: pointer;
+    box-shadow: 0 1px 4px var(--shadow);
+  }
+  .row .val {
+    width: 34px;
+    text-align: right;
+    font-size: .75rem;
+    color: var(--active);
+    font-weight: 500;
+  }
+
+  .section-label {
+    font-size: .68rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: .10em;
+    margin-bottom: 10px;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .toggle-row label { font-size: .75rem; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+  .switch { position:relative; width:40px; height:22px; flex-shrink:0; }
+  .switch input { opacity:0; width:0; height:0; }
+  .slider-sw {
+    position:absolute; inset:0;
+    background: var(--accent);
+    border-radius: 22px;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .slider-sw::before {
+    content:'';
+    position:absolute;
+    width:16px; height:16px;
+    left:3px; bottom:3px;
+    background:#fff;
+    border-radius:50%;
+    transition: transform .2s;
+  }
+  .switch input:checked + .slider-sw { background: var(--active); }
+  .switch input:checked + .slider-sw::before { transform: translateX(18px); }
+
+  #cropControls { display: none; }
+  .crop-btn-row { display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+
+  /* ── BUTTONS ── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 9px 18px;
+    border-radius: 7px;
+    border: none;
+    font-family: inherit;
+    font-size: .8rem;
+    letter-spacing: .06em;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
+    text-transform: uppercase;
+  }
+  .btn:active { transform: scale(.97); }
+  .btn-primary { background: var(--active); color: var(--bg); }
+  .btn-secondary { background: transparent; border: 1px solid var(--active); color: var(--active); }
+  .btn-muted { background: var(--accent); color: var(--text); }
+  .btn-sm { padding: 6px 12px; font-size: .72rem; }
+  .btn:disabled { opacity: .35; cursor: not-allowed; }
+
+  /* ── ACTION BAR ── */
+  #actionBar {
+    display: none;
+    margin: 14px 16px;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  #actionBar.visible { display: flex; }
+
+  #exportRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 16px 16px;
+    flex-wrap: wrap;
+    display: none;
+  }
+  #exportRow.visible { display: flex; }
+  #exportRow select, #exportRow input[type=number] {
+    padding: 6px 10px;
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    background: var(--white);
+    font-family: inherit;
+    font-size: .78rem;
+    color: var(--text);
+  }
+  #exportRow label { font-size: .75rem; color: var(--muted); }
+
+  /* ── PROGRESS ── */
+  #progressWrap {
+    display: none;
+    margin: 0 16px 12px;
+    background: var(--white);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  #progressBar { height: 4px; background: var(--active); width: 0%; transition: width .2s; }
+  #progressText { padding: 6px 12px; font-size: .72rem; color: var(--muted); }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-top: auto;
+    padding: 14px 16px;
+    text-align: center;
+    font-size: .68rem;
+    color: var(--muted);
+    letter-spacing: .06em;
+  }
+  footer a { color: var(--active); text-decoration: none; }
+
+  .rotate-row { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .rot-btn {
+    flex: 1;
+    min-width: 70px;
+    padding: 7px 10px;
+    border: 1px solid var(--accent);
+    background: var(--white);
+    border-radius: 6px;
+    font-family: inherit;
+    font-size: .72rem;
+    color: var(--text);
+    cursor: pointer;
+    text-align: center;
+    transition: background .15s;
+  }
+  .rot-btn:hover { background: var(--accent); }
+
+  .wb-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .wb-btn {
+    padding: 5px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--accent);
+    background: var(--white);
+    font-family: inherit;
+    font-size: .72rem;
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .wb-btn:hover, .wb-btn.active { background: var(--active); color: var(--bg); border-color: var(--active); }
+
+  .divider { border: none; border-top: 1px solid var(--accent); margin: 10px 0 14px; }
+
+  #mainCanvas.crop-mode { cursor: crosshair !important; }
+
+  /* ── 100% VIEW MODAL ── */
+  #viewModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(20,10,8,.92);
+    z-index: 1000;
+    overflow: auto;
+    cursor: zoom-out;
+  }
+  #viewModal.open { display: block; }
+  #viewModal canvas {
+    display: block;
+    /* natural pixel size — no CSS scaling */
+    image-rendering: pixelated;
+    cursor: zoom-out;
+  }
+  #viewModalLabel {
+    position: fixed;
+    top: 14px; left: 50%;
+    transform: translateX(-50%);
+    background: rgba(78,52,46,.85);
+    color: #fff;
+    font-size: .68rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 20px;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  #viewModalClose {
+    position: fixed;
+    top: 10px; right: 14px;
+    background: var(--active);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 32px; height: 32px;
+    font-size: 1rem;
+    line-height: 32px;
+    text-align: center;
+    cursor: pointer;
+    z-index: 1001;
+  }
+
+  @media(min-width:680px) {
+    .app { flex-direction: row; flex-wrap: wrap; }
+    #dropZone { margin: 18px; flex: 1 1 100%; }
+    #batchBar { margin: 0 18px 8px; flex: 1 1 100%; }
+    #canvasWrap { margin: 0 0 0 18px; flex: 1 1 55%; min-width: 0; }
+    .tabs { margin: 14px 18px 0 0; flex: 0 0 280px; }
+    .panel { margin: 0 18px 0 0; flex: 0 0 280px; border-radius: 0 var(--radius) var(--radius) var(--radius); }
+    #actionBar { margin: 12px 18px; flex: 1 1 100%; }
+    #exportRow { margin: 0 18px 16px; flex: 1 1 100%; }
+    #progressWrap { margin: 0 18px 12px; flex: 1 1 100%; }
+    footer { flex: 1 1 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="brand">akvarell<span>skiss</span>.se</div>
+  </div>
+  <div class="subtitle">Image Studio</div>
+</header>
+
+<div class="app">
+
+  <div id="dropZone">
+    <input type="file" id="fileInput" accept="image/*" multiple>
+    <div class="drop-icon">🖼</div>
+    <p><strong>Drop images here</strong> or click to browse<br>
+    Supports JPG · PNG · WebP · TIFF · single or batch</p>
+  </div>
+
+  <div id="batchBar" style="display:none">
+    <span>Batch: <span class="bcount" id="batchCount">0</span> images loaded</span>
+    <span id="batchNav">Image <span id="batchCurrent">1</span></span>
+    <button onclick="prevImage()">‹ Prev</button>
+    <button onclick="nextImage()">Next ›</button>
+  </div>
+
+  <div id="canvasWrap" style="display:none">
+    <canvas id="mainCanvas"></canvas>
+    <div id="baLabel">AFTER</div>
+    <div id="cropOverlay"></div>
+  </div>
+
+  <div class="tabs" id="tabsRow" style="display:none">
+    <button class="active" onclick="showTab('tone')">Tone</button>
+    <button onclick="showTab('transform')">Transform</button>
+    <button onclick="showTab('wb')">White Bal.</button>
+    <button onclick="showTab('crop')">Crop</button>
+  </div>
+
+  <!-- PANEL: TONE -->
+  <div class="panel active" id="panel-tone" style="display:none">
+
+    <p class="section-label">Colour &amp; Curve</p>
+
+    <div class="row">
+      <label>S-Curve</label>
+      <input type="range" id="sCurve" min="0" max="100" value="30" oninput="updateVal(this,'sCurveVal')">
+      <span class="val" id="sCurveVal">30</span>
+    </div>
+    <div class="row">
+      <label>Saturation</label>
+      <input type="range" id="saturation" min="-50" max="100" value="20" oninput="updateVal(this,'satVal')">
+      <span class="val" id="satVal">20</span>
+    </div>
+    <div class="row">
+      <label>Vibrance</label>
+      <input type="range" id="vibrance" min="-50" max="100" value="15" oninput="updateVal(this,'vibVal')">
+      <span class="val" id="vibVal">15</span>
+    </div>
+    <div class="row">
+      <label>Pop / Clarity</label>
+      <input type="range" id="pop" min="0" max="100" value="20" oninput="updateVal(this,'popVal')">
+      <span class="val" id="popVal">20</span>
+    </div>
+
+    <hr class="divider">
+    <p class="section-label">Light &amp; Tone</p>
+
+    <div class="row">
+      <label>Brightness</label>
+      <input type="range" id="brightness" min="-80" max="80" value="0" oninput="updateVal(this,'brightVal')">
+      <span class="val" id="brightVal">0</span>
+    </div>
+    <div class="row">
+      <label>Contrast</label>
+      <input type="range" id="contrast" min="-100" max="100" value="0" oninput="updateVal(this,'contrastVal')">
+      <span class="val" id="contrastVal">0</span>
+    </div>
+    <div class="row">
+      <label>Highlights</label>
+      <input type="range" id="highlights" min="-100" max="100" value="0" oninput="updateVal(this,'highlightsVal')">
+      <span class="val" id="highlightsVal">0</span>
+    </div>
+    <div class="row">
+      <label>Shadows</label>
+      <input type="range" id="shadows" min="-100" max="100" value="0" oninput="updateVal(this,'shadowsVal')">
+      <span class="val" id="shadowsVal">0</span>
+    </div>
+
+    <hr class="divider">
+    <div class="toggle-row">
+      <label class="switch">
+        <input type="checkbox" id="beforeAfter" onchange="toggleBA()">
+        <span class="slider-sw"></span>
+      </label>
+      <label>Before / After</label>
+    </div>
+  </div>
+
+  <!-- PANEL: TRANSFORM -->
+  <div class="panel" id="panel-transform" style="display:none">
+    <div class="row">
+      <label>Long side px</label>
+      <input type="range" id="scaleSlider" min="800" max="2500" value="1500" step="50" oninput="updateVal(this,'scaleVal')">
+      <span class="val" id="scaleVal">1500</span>
+    </div>
+    <hr class="divider">
+    <p style="font-size:.72rem;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Straighten / Rotate</p>
+    <div class="row">
+      <label>Straighten °</label>
+      <input type="range" id="rotate" min="-15" max="15" value="0" step="0.5" oninput="updateVal(this,'rotVal')">
+      <span class="val" id="rotVal">0</span>
+    </div>
+    <div class="rotate-row">
+      <div class="rot-btn" onclick="rotateFixed(-90)">↺ 90° L</div>
+      <div class="rot-btn" onclick="rotateFixed(90)">↻ 90° R</div>
+      <div class="rot-btn" onclick="rotateFixed(180)">↕ 180°</div>
+      <div class="rot-btn" onclick="flipH()">⇔ Flip H</div>
+    </div>
+  </div>
+
+  <!-- PANEL: WHITE BALANCE -->
+  <div class="panel" id="panel-wb" style="display:none">
+    <p style="font-size:.72rem;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Presets</p>
+    <div class="wb-row">
+      <div class="wb-btn active" id="wbp-neutral" onclick="applyWBPreset('neutral',this)">Neutral</div>
+      <div class="wb-btn" id="wbp-cool" onclick="applyWBPreset('cool',this)">Cool / Blue sky</div>
+      <div class="wb-btn" id="wbp-warm" onclick="applyWBPreset('warm',this)">Warm / Indoor</div>
+      <div class="wb-btn" id="wbp-phone" onclick="applyWBPreset('phone',this)">Fix Phone WB</div>
+    </div>
+    <hr class="divider">
+    <div class="row">
+      <label>Temperature</label>
+      <input type="range" id="wbTemp" min="-80" max="80" value="0" oninput="updateVal(this,'wbTempVal')">
+      <span class="val" id="wbTempVal">0</span>
+    </div>
+    <div class="row">
+      <label>Tint</label>
+      <input type="range" id="wbTint" min="-60" max="60" value="0" oninput="updateVal(this,'wbTintVal')">
+      <span class="val" id="wbTintVal">0</span>
+    </div>
+  </div>
+
+  <!-- PANEL: CROP -->
+  <div class="panel" id="panel-crop" style="display:none">
+    <p style="font-size:.72rem;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.07em">Aspect Ratio</p>
+    <div class="wb-row" id="ratioButtons">
+      <div class="wb-btn active" onclick="setRatio('free',this)">Free</div>
+      <div class="wb-btn" onclick="setRatio('1:1',this)">1:1</div>
+      <div class="wb-btn" onclick="setRatio('4:5',this)">4:5</div>
+      <div class="wb-btn" onclick="setRatio('16:9',this)">16:9</div>
+      <div class="wb-btn" onclick="setRatio('A4',this)">A4</div>
+    </div>
+    <hr class="divider">
+    <p style="font-size:.72rem;color:var(--muted);margin-bottom:10px">Draw a crop box on the image, then confirm.</p>
+    <div class="crop-btn-row">
+      <button class="btn btn-primary btn-sm" onclick="startCrop()">✦ Start crop</button>
+      <button class="btn btn-secondary btn-sm" id="confirmCropBtn" onclick="confirmCrop()" disabled>✓ Apply</button>
+      <button class="btn btn-muted btn-sm" onclick="cancelCrop()">✕ Cancel</button>
+    </div>
+    <div id="cropControls"></div>
+  </div>
+
+  <!-- ACTION BAR -->
+  <div id="actionBar">
+    <button class="btn btn-muted btn-sm" onclick="resetAll()">↺ Reset all</button>
+    <button class="btn btn-secondary btn-sm" onclick="addMore()">+ Add images</button>
+    <button class="btn btn-secondary btn-sm" onclick="openViewModal()" id="view100Btn">⤢ View 100%</button>
+    <button class="btn btn-primary" onclick="exportCurrent()" id="exportBtn">Export this image</button>
+    <button class="btn btn-primary" onclick="exportBatch()" id="batchExportBtn" style="display:none">Export all batch</button>
+  </div>
+
+  <!-- 100% VIEW MODAL -->
+  <div id="viewModal" onclick="closeViewModal()">
+    <button id="viewModalClose" onclick="closeViewModal()">✕</button>
+    <div id="viewModalLabel">100% · click anywhere to close · scroll to pan</div>
+    <canvas id="viewCanvas"></canvas>
+  </div>
+
+  <div id="exportRow">
+    <label>Format</label>
+    <select id="fmtSelect">
+      <option value="image/webp">WebP</option>
+      <option value="image/jpeg">JPG</option>
+    </select>
+    <label>Quality</label>
+    <input type="number" id="qualityInput" min="10" max="100" value="82" style="width:62px">
+    <label>%</label>
+  </div>
+
+  <div id="progressWrap">
+    <div id="progressBar"></div>
+    <div id="progressText">Processing…</div>
+  </div>
+
+  <footer>
+    Free tool by <a href="https://www.akvarellskiss.se" target="_blank">akvarellskiss.se</a> · Images never leave your device
+  </footer>
+
+</div>
+
+<script>
+// ════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════
+const state = {
+  images: [],
+  current: 0,
+  cropMode: false,
+  cropRect: null,
+  cropRatio: 'free',
+  cropStart: null,
+  isDragging: false,
+};
+
+const canvas = document.getElementById('mainCanvas');
+const ctx    = canvas.getContext('2d');
+
+let sCurveLUT     = new Uint8Array(256);
+let needsLUTRebuild = true;
+
+let rafPending = false;
+function scheduleRender() {
+  if (rafPending) return;
+  rafPending = true;
+  requestAnimationFrame(() => { rafPending = false; render(); });
+}
+
+// ════════════════════════════════════════════════
+//  FILE LOADING
+// ════════════════════════════════════════════════
+document.getElementById('fileInput').addEventListener('change', e => loadFiles(e.target.files));
+
+const dz = document.getElementById('dropZone');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag'); loadFiles(e.dataTransfer.files); });
+
+// Max long-side for the live preview canvas.
+// All slider renders use this small bitmap — fast on mobile.
+// Export always uses srcBitmap at full resolution.
+const PREVIEW_MAX = 900;
+
+async function makePreview(bmp) {
+  const long = Math.max(bmp.width, bmp.height);
+  if (long <= PREVIEW_MAX) return bmp;
+  const scale = PREVIEW_MAX / long;
+  const pw = Math.round(bmp.width  * scale);
+  const ph = Math.round(bmp.height * scale);
+  return createImageBitmap(bmp, 0, 0, bmp.width, bmp.height,
+    { resizeWidth: pw, resizeHeight: ph, resizeQuality: 'medium' });
+}
+
+async function loadFiles(files) {
+  if (!files.length) return;
+  showProgress(0, `Loading ${files.length} image(s)…`);
+  const newImages = [];
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    if (!file.type.startsWith('image/')) continue;
+    const bmp     = await createImageBitmap(file);
+    const preview = await makePreview(bmp);
+    newImages.push({
+      file,
+      srcBitmap:     bmp,      // full resolution — used only for export + View 100%
+      previewBitmap: preview,  // scaled down — used for all live rendering
+      croppedBitmap: null,     // full-res crop (set on confirm)
+      croppedPreview: null,    // preview-res crop (set on confirm)
+      fixedAngle: 0,
+      fixedFlip: false
+    });
+    showProgress(Math.round((i+1)/files.length*100), `Loaded ${i+1} / ${files.length}`);
+  }
+  state.images.push(...newImages);
+  state.current = state.images.length - newImages.length;
+  hideProgress();
+  showUI();
+  drawCurrent();
+}
+
+function addMore() { document.getElementById('fileInput').click(); }
+
+// ════════════════════════════════════════════════
+//  UI
+// ════════════════════════════════════════════════
+function showUI() {
+  const multi = state.images.length > 1;
+  document.getElementById('canvasWrap').style.display = 'block';
+  document.getElementById('tabsRow').style.display    = 'flex';
+  document.querySelectorAll('.panel').forEach(p => p.style.display = '');
+  document.getElementById('panel-tone').style.display = '';
+  document.getElementById('actionBar').classList.add('visible');
+  document.getElementById('exportRow').classList.add('visible');
+  document.getElementById('batchBar').style.display       = multi ? 'flex' : 'none';
+  document.getElementById('batchExportBtn').style.display = multi ? 'inline-flex' : 'none';
+  updateBatchNav();
+}
+
+function updateBatchNav() {
+  document.getElementById('batchCount').textContent   = state.images.length;
+  document.getElementById('batchCurrent').textContent = state.current + 1;
+}
+
+function prevImage() { if (state.current > 0)                      { state.current--; updateBatchNav(); drawCurrent(); } }
+function nextImage() { if (state.current < state.images.length-1)  { state.current++; updateBatchNav(); drawCurrent(); } }
+
+// ════════════════════════════════════════════════
+//  TABS
+// ════════════════════════════════════════════════
+function showTab(id) {
+  document.querySelectorAll('.tabs button').forEach((b,i) =>
+    b.classList.toggle('active', ['tone','transform','wb','crop'][i] === id));
+  ['tone','transform','wb','crop'].forEach(t =>
+    document.getElementById('panel-'+t).classList.toggle('active', t === id));
+  if (id !== 'crop') cancelCrop();
+}
+
+// ════════════════════════════════════════════════
+//  SLIDERS
+// ════════════════════════════════════════════════
+function updateVal(el, spanId) {
+  document.getElementById(spanId).textContent = el.value;
+  needsLUTRebuild = true;
+  scheduleRender();
+}
+
+function v(id) { return parseFloat(document.getElementById(id).value); }
+
+// ════════════════════════════════════════════════
+//  S-CURVE LUT
+//  Classic photographic S: deepens shadows, lifts highlights.
+//  Formula: t + s·t·(1−t)·(2t−1)
+//    – At t=0 and t=1 the adjustment is zero (endpoints are preserved)
+//    – At t≈0.25 shadows are pulled down (darker)
+//    – At t≈0.75 highlights are pushed up (brighter)
+//    – Naturally increases apparent saturation, just like a real curve
+//  Amplitude 0.85 at strength=100 gives a strong but usable effect.
+// ════════════════════════════════════════════════
+function buildSCurveLUT(strength) {
+  const s = (strength / 100) * 0.85;
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255;
+    const curved = t + s * (t * (1 - t) * (2 * t - 1));
+    sCurveLUT[i] = Math.min(255, Math.max(0, Math.round(curved * 255)));
+  }
+}
+
+// ════════════════════════════════════════════════
+//  SMOOTHSTEP — soft luminance mask for highlights/shadows
+//  Returns 0 at edge0, 1 at edge1, smooth cubic in between.
+// ════════════════════════════════════════════════
+function smoothstep(edge0, edge1, x) {
+  const t = Math.max(0, Math.min(1, (x - edge0) / (edge1 - edge0)));
+  return t * t * (3 - 2 * t);
+}
+
+// ════════════════════════════════════════════════
+//  CORE PIXEL PIPELINE
+//  Single function used by both preview render and export,
+//  so what-you-see is exactly what-you-get.
+//
+//  Order matters:
+//    WB → Brightness → Shadows → Highlights → Contrast → S-Curve
+//    → Saturation → Vibrance → Pop
+//
+//  Ranges are intentionally gentle for fine-tuning:
+//    Contrast  ±100 → factor 0.5–1.5  (never posterises)
+//    Highlights ±100 → ±35 levels on bright pixels only
+//    Shadows    ±100 → ±35 levels on dark pixels only
+// ════════════════════════════════════════════════
+function processPixels(px, sat, vib, pop, brite, temp, tint, contrast, highlights, shadows) {
+  const n = px.length;
+  const cFactor = 1 + (contrast / 100) * 0.5;   // 0.5 → 1.5
+  const hShift  = (highlights / 100) * 35;        // ±35 levels max
+  const sShift  = (shadows    / 100) * 35;
+
+  for (let i = 0; i < n; i += 4) {
+    let r = px[i], g = px[i+1], b = px[i+2];
+
+    // 1. White balance
+    r = clamp(r + temp * 0.5);
+    b = clamp(b - temp * 0.4);
+    g = clamp(g + tint * 0.3);
+
+    // 2. Brightness — additive, ±40 levels at full range
+    if (brite !== 0) {
+      const bf = brite / 100;
+      r = clamp(r + bf * 40);
+      g = clamp(g + bf * 40);
+      b = clamp(b + bf * 40);
+    }
+
+    // 3. Shadows — mask peaks at lum=0, fades out by lum=110
+    if (sShift !== 0) {
+      const lum  = 0.299*r + 0.587*g + 0.114*b;
+      const mask = smoothstep(110, 0, lum);
+      const adj  = sShift * mask;
+      r = clamp(r + adj);
+      g = clamp(g + adj);
+      b = clamp(b + adj);
+    }
+
+    // 4. Highlights — mask peaks at lum=255, fades out below lum=140
+    if (hShift !== 0) {
+      const lum  = 0.299*r + 0.587*g + 0.114*b;
+      const mask = smoothstep(140, 255, lum);
+      const adj  = hShift * mask;
+      r = clamp(r + adj);
+      g = clamp(g + adj);
+      b = clamp(b + adj);
+    }
+
+    // 5. Contrast — symmetric stretch around mid-grey 128
+    if (contrast !== 0) {
+      r = clamp((r - 128) * cFactor + 128);
+      g = clamp((g - 128) * cFactor + 128);
+      b = clamp((b - 128) * cFactor + 128);
+    }
+
+    // 6. S-Curve LUT
+    r = sCurveLUT[r]; g = sCurveLUT[g]; b = sCurveLUT[b];
+
+    // 7. Saturation (HSL)
+    let [h, s, l] = rgbToHsl(r, g, b);
+    s = clamp01(s + sat / 400);
+
+    // 8. Vibrance — less boost for already-saturated pixels
+    s = clamp01(s + (1 - s) * (vib / 600));
+
+    [r, g, b] = hslToRgb(h, s, l);
+
+    // 9. Pop / Clarity — sine-weighted midtone local contrast
+    if (pop > 0) {
+      const pf     = pop / 100;
+      const lum    = 0.299*r + 0.587*g + 0.114*b;
+      const factor = 1 + pf * 0.18 * Math.sin(lum / 255 * Math.PI);
+      const mid    = lum * pf * 0.04;
+      r = clamp((r - mid) * factor + mid);
+      g = clamp((g - mid) * factor + mid);
+      b = clamp((b - mid) * factor + mid);
+    }
+
+    px[i]=r; px[i+1]=g; px[i+2]=b;
+  }
+}
+
+// ════════════════════════════════════════════════
+//  RENDER
+// ════════════════════════════════════════════════
+function render() {
+  const img = state.images[state.current];
+  if (!img) return;
+
+  if (needsLUTRebuild) { buildSCurveLUT(v('sCurve')); needsLUTRebuild = false; }
+
+  // Use the small preview bitmap for live rendering — fast on mobile.
+  // croppedPreview is the preview-scaled version of a confirmed crop.
+  const src = img.croppedPreview || img.croppedBitmap || img.previewBitmap || img.srcBitmap;
+  const { w: dw, h: dh } = bitmapDisplaySize(src, img.fixedAngle);
+  canvas.width = dw; canvas.height = dh;
+
+  ctx.save();
+  ctx.translate(dw/2, dh/2);
+  ctx.rotate(img.fixedAngle * Math.PI/180);
+  if (img.fixedFlip) ctx.scale(-1, 1);
+  ctx.drawImage(src, -src.width/2, -src.height/2);
+  ctx.restore();
+
+  const angle = v('rotate');
+  if (angle !== 0) applyRotation(angle);
+
+  const d = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  processPixels(d.data,
+    v('saturation'), v('vibrance'), v('pop'), v('brightness'),
+    v('wbTemp'), v('wbTint'),
+    v('contrast'), v('highlights'), v('shadows')
+  );
+  ctx.putImageData(d, 0, 0);
+}
+
+function bitmapDisplaySize(bmp, angle) {
+  const a = Math.abs(angle) % 180;
+  if (a === 90) return { w: bmp.height, h: bmp.width };
+  return { w: bmp.width, h: bmp.height };
+}
+
+function applyRotation(deg) {
+  const rad = deg * Math.PI / 180;
+  const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
+  const sw = canvas.width, sh = canvas.height;
+  const nw = Math.round(sw*cos + sh*sin), nh = Math.round(sw*sin + sh*cos);
+  const tmp = document.createElement('canvas');
+  tmp.width = nw; tmp.height = nh;
+  const tc = tmp.getContext('2d');
+  tc.translate(nw/2, nh/2); tc.rotate(rad);
+  tc.drawImage(canvas, -sw/2, -sh/2);
+  canvas.width = nw; canvas.height = nh;
+  ctx.drawImage(tmp, 0, 0);
+}
+
+// ════════════════════════════════════════════════
+//  FIXED ROTATE / FLIP
+// ════════════════════════════════════════════════
+function rotateFixed(deg) {
+  const img = state.images[state.current];
+  img.fixedAngle = ((img.fixedAngle + deg) + 360) % 360;
+  render();
+}
+function flipH() {
+  state.images[state.current].fixedFlip = !state.images[state.current].fixedFlip;
+  render();
+}
+
+// ════════════════════════════════════════════════
+//  BEFORE / AFTER
+// ════════════════════════════════════════════════
+function toggleBA() {
+  const on  = document.getElementById('beforeAfter').checked;
+  const lbl = document.getElementById('baLabel');
+  if (on) {
+    const img = state.images[state.current];
+    const src = img.croppedPreview || img.croppedBitmap || img.previewBitmap || img.srcBitmap;
+    canvas.width = src.width; canvas.height = src.height;
+    ctx.drawImage(src, 0, 0);
+    lbl.textContent = 'BEFORE';
+  } else {
+    render();
+    lbl.textContent = 'AFTER';
+  }
+}
+
+// ════════════════════════════════════════════════
+//  WHITE BALANCE PRESETS
+// ════════════════════════════════════════════════
+function applyWBPreset(preset, el) {
+  document.querySelectorAll('.wb-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  const presets = { neutral:[0,0], cool:[-30,-10], warm:[30,8], phone:[-18,-8] };
+  const [t, ti] = presets[preset];
+  document.getElementById('wbTemp').value = t;
+  document.getElementById('wbTint').value = ti;
+  document.getElementById('wbTempVal').textContent = t;
+  document.getElementById('wbTintVal').textContent = ti;
+  render();
+}
+
+// ════════════════════════════════════════════════
+//  CROP
+// ════════════════════════════════════════════════
+function setRatio(r, el) {
+  state.cropRatio = r;
+  document.querySelectorAll('#ratioButtons .wb-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function startCrop() {
+  cancelCrop();
+  state.cropMode = true;
+  canvas.classList.add('crop-mode');
+  document.getElementById('confirmCropBtn').disabled = true;
+  canvas.addEventListener('mousedown', cropMouseDown);
+  canvas.addEventListener('mousemove', cropMouseMove);
+  canvas.addEventListener('mouseup',   cropMouseUp);
+  canvas.addEventListener('touchstart', cropTouchStart, {passive:false});
+  canvas.addEventListener('touchmove',  cropTouchMove,  {passive:false});
+  canvas.addEventListener('touchend',   cropTouchEnd);
+}
+
+function cancelCrop() {
+  state.cropMode = false; state.cropRect = null;
+  canvas.classList.remove('crop-mode');
+  canvas.removeEventListener('mousedown', cropMouseDown);
+  canvas.removeEventListener('mousemove', cropMouseMove);
+  canvas.removeEventListener('mouseup',   cropMouseUp);
+  canvas.removeEventListener('touchstart', cropTouchStart);
+  canvas.removeEventListener('touchmove',  cropTouchMove);
+  canvas.removeEventListener('touchend',   cropTouchEnd);
+  hideCropOverlay();
+  document.getElementById('confirmCropBtn').disabled = true;
+}
+
+function canvasPos(e) {
+  const rect  = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  return {
+    cx: (e.clientX - rect.left) * scaleX,
+    cy: (e.clientY - rect.top)  * scaleY,
+    rx:  e.clientX - rect.left,
+    ry:  e.clientY - rect.top
+  };
+}
+function touchPos(e) { return canvasPos(e.touches[0]); }
+
+function cropMouseDown(e) { startDraw(canvasPos(e)); }
+function cropMouseMove(e) { if (state.isDragging) updateDraw(canvasPos(e)); }
+function cropMouseUp(e)   { endDraw(canvasPos(e)); }
+function cropTouchStart(e){ e.preventDefault(); startDraw(touchPos(e)); }
+function cropTouchMove(e) { e.preventDefault(); if (state.isDragging) updateDraw(touchPos(e)); }
+function cropTouchEnd(e)  { e.preventDefault(); endDraw(canvasPos(e.changedTouches[0])); }
+
+function startDraw(p) { state.isDragging = true; state.cropStart = p; }
+
+function updateDraw(p) {
+  if (!state.cropStart) return;
+  const {cx:x1, cy:y1, rx:rx1, ry:ry1} = state.cropStart;
+  const {cx:x2, cy:y2, rx:rx2, ry:ry2} = p;
+  let w = Math.abs(x2-x1), h = Math.abs(y2-y1);
+  if (state.cropRatio !== 'free') h = w / getRatio(state.cropRatio);
+  const scaleY = canvas.height / canvas.getBoundingClientRect().height;
+  state.cropRect = { x: Math.min(x1,x2), y: Math.min(y1,y2), w, h };
+  showCropOverlay(Math.min(rx1,rx2), Math.min(ry1,ry2), Math.abs(rx2-rx1), h / scaleY);
+}
+
+function endDraw(p) {
+  state.isDragging = false;
+  if (state.cropRect && state.cropRect.w > 10 && state.cropRect.h > 10)
+    document.getElementById('confirmCropBtn').disabled = false;
+}
+
+function getRatio(r) {
+  return r==='1:1' ? 1 : r==='4:5' ? 4/5 : r==='16:9' ? 16/9 : r==='A4' ? 210/297 : null;
+}
+
+function showCropOverlay(x, y, w, h) {
+  const o     = document.getElementById('cropOverlay');
+  const wRect = document.getElementById('canvasWrap').getBoundingClientRect();
+  const cRect = canvas.getBoundingClientRect();
+  o.style.cssText = `display:block;left:${x+cRect.left-wRect.left}px;top:${y+cRect.top-wRect.top}px;width:${w}px;height:${h}px;position:absolute;border:2px solid var(--active);box-shadow:0 0 0 9999px rgba(0,0,0,.4);pointer-events:none;`;
+}
+function hideCropOverlay() { document.getElementById('cropOverlay').style.display = 'none'; }
+
+async function confirmCrop() {
+  const img = state.images[state.current];
+  const cr  = state.cropRect;
+  if (!cr) return;
+
+  // cr is in preview canvas coordinates — scale back up to full-res coords
+  const previewSrc = img.croppedPreview || img.previewBitmap || img.srcBitmap;
+  const fullSrc    = img.croppedBitmap  || img.srcBitmap;
+  const scale      = fullSrc.width / previewSrc.width;
+
+  // Full-res crop
+  const fcrop = document.createElement('canvas');
+  const fw = Math.round(cr.w * scale), fh = Math.round(cr.h * scale);
+  fcrop.width = fw; fcrop.height = fh;
+  fcrop.getContext('2d').drawImage(fullSrc,
+    cr.x * scale, cr.y * scale, fw, fh, 0, 0, fw, fh);
+  img.croppedBitmap = await createImageBitmap(fcrop);
+
+  // Preview-res crop (from the current canvas which is already preview-sized)
+  const pcrop = document.createElement('canvas');
+  pcrop.width  = Math.round(cr.w); pcrop.height = Math.round(cr.h);
+  const tmpC = document.createElement('canvas');
+  tmpC.width  = canvas.width; tmpC.height = canvas.height;
+  tmpC.getContext('2d').drawImage(canvas, 0, 0);
+  pcrop.getContext('2d').drawImage(tmpC, cr.x, cr.y, cr.w, cr.h, 0, 0, cr.w, cr.h);
+  img.croppedPreview = await createImageBitmap(pcrop);
+
+  cancelCrop(); render();
+}
+
+// ════════════════════════════════════════════════
+//  EXPORT
+// ════════════════════════════════════════════════
+async function exportCurrent() { await exportOne(state.images[state.current]); }
+
+async function exportBatch() {
+  showProgress(0, 'Exporting batch…');
+  for (let i = 0; i < state.images.length; i++) {
+    state.current = i; updateBatchNav(); drawCurrent();
+    await sleep(30);
+    await exportOne(state.images[i], true);
+    showProgress(Math.round((i+1)/state.images.length*100), `Exported ${i+1} / ${state.images.length}`);
+  }
+  hideProgress();
+}
+
+async function exportOne(imgObj) {
+  const src      = imgObj.croppedBitmap || imgObj.srcBitmap;
+  const longSide = v('scaleSlider');
+  const aspect   = src.height / src.width;
+  let ew, eh;
+  if (src.width >= src.height) { ew = longSide; eh = Math.round(longSide * aspect); }
+  else                          { eh = longSide; ew = Math.round(longSide / aspect); }
+
+  const ec  = document.createElement('canvas');
+  ec.width  = ew; ec.height = eh;
+  const ec2 = ec.getContext('2d');
+
+  ec2.save();
+  ec2.translate(ew/2, eh/2);
+  ec2.rotate(imgObj.fixedAngle * Math.PI/180);
+  if (imgObj.fixedFlip) ec2.scale(-1,1);
+  ec2.drawImage(src, -ew/2, -eh/2, ew, eh);
+  ec2.restore();
+
+  const fineAngle = v('rotate');
+  if (fineAngle !== 0) {
+    const rad = fineAngle * Math.PI/180;
+    const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
+    const nw = Math.round(ew*cos + eh*sin), nh = Math.round(ew*sin + eh*cos);
+    const tmp2 = document.createElement('canvas');
+    tmp2.width = nw; tmp2.height = nh;
+    const tc2 = tmp2.getContext('2d');
+    tc2.translate(nw/2, nh/2); tc2.rotate(rad);
+    tc2.drawImage(ec, -ew/2, -eh/2);
+    ec.width = nw; ec.height = nh;
+    ec2.drawImage(tmp2, 0, 0);
+  }
+
+  buildSCurveLUT(v('sCurve'));
+
+  const ed = ec2.getImageData(0, 0, ec.width, ec.height);
+  processPixels(ed.data,
+    v('saturation'), v('vibrance'), v('pop'), v('brightness'),
+    v('wbTemp'), v('wbTint'),
+    v('contrast'), v('highlights'), v('shadows')
+  );
+  ec2.putImageData(ed, 0, 0);
+
+  const fmt      = document.getElementById('fmtSelect').value;
+  const qual     = parseInt(document.getElementById('qualityInput').value) / 100;
+  const ext      = fmt === 'image/webp' ? 'webp' : 'jpg';
+  const baseName = (imgObj.file.name || 'image').replace(/\.[^.]+$/, '');
+
+  ec.toBlob(blob => {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${baseName}_edited.${ext}`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  }, fmt, qual);
+}
+
+// ════════════════════════════════════════════════
+//  DRAW / RESET
+// ════════════════════════════════════════════════
+function drawCurrent() { resetSliders(); render(); }
+function resetSliders() { /* intentional: keep settings across batch images */ }
+
+function resetAll() {
+  const img = state.images[state.current];
+  img.croppedBitmap = null; img.croppedPreview = null; img.fixedAngle = 0; img.fixedFlip = false;
+
+  const defaults = {
+    sCurve:30, saturation:20, vibrance:15, pop:20,
+    brightness:0, contrast:0, highlights:0, shadows:0, rotate:0,
+    wbTemp:0, wbTint:0
+  };
+  Object.entries(defaults).forEach(([id, val]) => { document.getElementById(id).value = val; });
+
+  const spans = {
+    sCurveVal:30, satVal:20, vibVal:15, popVal:20,
+    brightVal:0, contrastVal:0, highlightsVal:0, shadowsVal:0, rotVal:0,
+    wbTempVal:0, wbTintVal:0
+  };
+  Object.entries(spans).forEach(([id, val]) => { document.getElementById(id).textContent = val; });
+
+  needsLUTRebuild = true;
+  render();
+}
+
+// ════════════════════════════════════════════════
+//  PROGRESS
+// ════════════════════════════════════════════════
+function showProgress(pct, msg) {
+  document.getElementById('progressWrap').style.display = 'block';
+  document.getElementById('progressBar').style.width    = pct + '%';
+  document.getElementById('progressText').textContent   = msg;
+}
+function hideProgress() {
+  setTimeout(() => { document.getElementById('progressWrap').style.display = 'none'; }, 600);
+}
+
+// ════════════════════════════════════════════════
+//  COLOUR UTILITIES
+// ════════════════════════════════════════════════
+function clamp(v)   { return v < 0 ? 0 : v > 255 ? 255 : Math.round(v); }
+function clamp01(v) { return v < 0 ? 0 : v > 1   ? 1   : v; }
+
+function rgbToHsl(r, g, b) {
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h, s, l=(max+min)/2;
+  if (max===min) { h=s=0; }
+  else {
+    const d=max-min;
+    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max){
+      case r: h=((g-b)/d+(g<b?6:0))/6; break;
+      case g: h=((b-r)/d+2)/6; break;
+      case b: h=((r-g)/d+4)/6; break;
+    }
+  }
+  return [h, s, l];
+}
+
+function hslToRgb(h, s, l) {
+  if (s===0) { const v=Math.round(l*255); return [v,v,v]; }
+  const q = l<0.5 ? l*(1+s) : l+s-l*s;
+  const p = 2*l-q;
+  return [
+    Math.round(hue2rgb(p,q,h+1/3)*255),
+    Math.round(hue2rgb(p,q,h)    *255),
+    Math.round(hue2rgb(p,q,h-1/3)*255)
+  ];
+}
+function hue2rgb(p,q,t){
+  if(t<0)t+=1; if(t>1)t-=1;
+  if(t<1/6) return p+(q-p)*6*t;
+  if(t<1/2) return q;
+  if(t<2/3) return p+(q-p)*(2/3-t)*6;
+  return p;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ════════════════════════════════════════════════
+//  100% VIEW MODAL
+//  Renders a fresh canvas at true pixel size (no CSS scaling).
+//  All current edits are applied via processPixels so what
+//  you see is exactly what the export will look like at full res.
+// ════════════════════════════════════════════════
+function openViewModal() {
+  const img = state.images[state.current];
+  if (!img) return;
+
+  const src = img.croppedBitmap || img.srcBitmap;
+  const { w: dw, h: dh } = bitmapDisplaySize(src, img.fixedAngle);
+
+  const vc  = document.getElementById('viewCanvas');
+  vc.width  = dw;
+  vc.height = dh;
+  const vc2 = vc.getContext('2d');
+
+  // Draw with fixed rotation/flip
+  vc2.save();
+  vc2.translate(dw/2, dh/2);
+  vc2.rotate(img.fixedAngle * Math.PI/180);
+  if (img.fixedFlip) vc2.scale(-1, 1);
+  vc2.drawImage(src, -src.width/2, -src.height/2);
+  vc2.restore();
+
+  // Straighten
+  const angle = v('rotate');
+  if (angle !== 0) {
+    const rad = angle * Math.PI / 180;
+    const cos = Math.abs(Math.cos(rad)), sin = Math.abs(Math.sin(rad));
+    const sw = vc.width, sh = vc.height;
+    const nw = Math.round(sw*cos + sh*sin), nh = Math.round(sw*sin + sh*cos);
+    const tmp = document.createElement('canvas');
+    tmp.width = nw; tmp.height = nh;
+    const tc = tmp.getContext('2d');
+    tc.translate(nw/2, nh/2); tc.rotate(rad);
+    tc.drawImage(vc, -sw/2, -sh/2);
+    vc.width = nw; vc.height = nh;
+    vc2.drawImage(tmp, 0, 0);
+  }
+
+  // Apply all pixel ops at true resolution
+  buildSCurveLUT(v('sCurve'));
+  const d = vc2.getImageData(0, 0, vc.width, vc.height);
+  processPixels(d.data,
+    v('saturation'), v('vibrance'), v('pop'), v('brightness'),
+    v('wbTemp'), v('wbTint'),
+    v('contrast'), v('highlights'), v('shadows')
+  );
+  vc2.putImageData(d, 0, 0);
+
+  // Centre the canvas in the scrollable modal
+  const modal = document.getElementById('viewModal');
+  const pw = Math.max(window.innerWidth,  vc.width  + 40);
+  const ph = Math.max(window.innerHeight, vc.height + 40);
+  vc.style.margin = `${Math.max(20, (window.innerHeight - vc.height) / 2)}px auto`;
+  vc.style.display = 'block';
+
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+
+  // Update label with pixel dimensions
+  document.getElementById('viewModalLabel').textContent =
+    `100% · ${vc.width} × ${vc.height} px · click anywhere to close`;
+}
+
+function closeViewModal() {
+  document.getElementById('viewModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+// Escape key closes modal
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeViewModal(); });
+</script>
+</body>
+</html>
